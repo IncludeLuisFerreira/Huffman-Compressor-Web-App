@@ -1,3 +1,11 @@
+mod huffman;
+
+use crate::huffman::huffman;
+
 fn main() {
-    println!("Hello, world!");
+
+    let path = String::from("teste.txt");
+    
+    huffman(&path);
+
 }
