@@ -1,5 +1,4 @@
-use std::cmp::Ordering;
-
+use std::{cmp::Ordering, format};
 
 #[derive(Debug, Eq, PartialEq)] // Eq e PartialEq são necessárias para Ord
 pub enum Node {
@@ -15,14 +14,6 @@ pub enum Node {
 }
 
 impl Node {
-    pub fn new_folha(caracter: u8, freq: usize) -> Self {
-        Node::Folha { caracter, freq }
-    }
-
-    pub fn new_interno(freq: usize, left: Box<Node>, right: Box<Node>) -> Self {
-        Node::Interno { freq, left, right }
-    }
-
     pub fn freq(&self) -> usize {
         match self {
             Node::Folha { freq, .. } => *freq,
@@ -41,5 +32,20 @@ impl Ord for Node {
 impl PartialOrd for Node {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+
+pub fn gerar_codigo(raiz: &Node, caminho_atual: String, dicionario: &mut [Option<String>; 256]) {
+    
+    match raiz {
+        Node::Folha { caracter, freq } => {
+            dicionario[*caracter as usize] = Some(caminho_atual);
+        }
+        Node::Interno { freq, left, right } => {
+            gerar_codigo(left, format!("{}0", caminho_atual), dicionario);
+
+            gerar_codigo(right, format!("{}1", caminho_atual), dicionario);
+        }
     }
 }
