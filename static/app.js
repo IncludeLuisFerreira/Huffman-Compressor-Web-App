@@ -44,6 +44,11 @@
             btnCompactar.disabled = true;
             return;
         }
+        if (ultimaUrl) {
+            URL.revokeObjectURL(ultimaUrl);
+            ultimaUrl = null;
+        }
+        resultPanel.hidden = true;
         arquivoSelecionado = arquivo;
         uploadInfo.textContent = arquivo.name + ' • ' + formatarBytes(arquivo.size);
         uploadInfo.hidden = false;
