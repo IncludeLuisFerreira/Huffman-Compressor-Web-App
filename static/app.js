@@ -15,6 +15,8 @@
     const statReduction = document.getElementById('stat-reduction');
 
     let arquivoSelecionado = null;
+    let compactando = false;
+    let ultimaUrl = null;
 
     function formatarBytes(bytes) {
         if (bytes === 0) return '0 B';
@@ -45,7 +47,7 @@
         arquivoSelecionado = arquivo;
         uploadInfo.textContent = arquivo.name + ' • ' + formatarBytes(arquivo.size);
         uploadInfo.hidden = false;
-        btnCompactar.disabled = false;
+        btnCompactar.disabled = compactando;
         limparErro();
     }
 
@@ -64,19 +66,25 @@
         selecionarArquivo(e.dataTransfer.files[0]);
     });
 
+    document.addEventListener('dragover', (e) => e.preventDefault());
+    document.addEventListener('drop', (e) => e.preventDefault());
+
     fileInput.addEventListener('change', () => selecionarArquivo(fileInput.files[0]));
 
     btnCompactar.addEventListener('click', async () => {
         if (!arquivoSelecionado) return;
 
+        const arquivo = arquivoSelecionado;
+
         limparErro();
         resultPanel.hidden = true;
         btnCompactar.disabled = true;
+        compactando = true;
         progressContainer.hidden = false;
         progressLabel.hidden = false;
 
         const formData = new FormData();
-        formData.append('arquivo', arquivoSelecionado);
+        formData.append('arquivo', arquivo);
 
         try {
             const resposta = await fetch('/api/compactar', { method: 'POST', body: formData });
@@ -91,15 +99,20 @@
             }
 
             const blob = await resposta.blob();
-            const nomeDownload = arquivoSelecionado.name + '.huff';
-            const url = URL.createObjectURL(blob);
 
+            if (arquivoSelecionado !== arquivo) return;
+
+            if (ultimaUrl) URL.revokeObjectURL(ultimaUrl);
+            const url = URL.createObjectURL(blob);
+            ultimaUrl = url;
+
+            const nomeDownload = arquivo.name + '.huff';
             downloadLink.href = url;
             downloadLink.download = nomeDownload;
-            statOriginal.textContent = formatarBytes(arquivoSelecionado.size);
+            statOriginal.textContent = formatarBytes(arquivo.size);
             statCompressed.textContent = formatarBytes(blob.size);
-            statReduction.textContent = arquivoSelecionado.size > 0
-                ? ((1 - blob.size / arquivoSelecionado.size) * 100).toFixed(1) + '%'
+            statReduction.textContent = arquivo.size > 0
+                ? ((1 - blob.size / arquivo.size) * 100).toFixed(1) + '%'
                 : '—';
             resultPanel.hidden = false;
         } catch (erro) {
@@ -107,6 +120,7 @@
         } finally {
             progressContainer.hidden = true;
             progressLabel.hidden = true;
+            compactando = false;
             btnCompactar.disabled = false;
         }
     });
