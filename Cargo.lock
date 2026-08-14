@@ -7,9 +7,12 @@ name = "Huffman-web-app"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "http-body-util",
+ "serde_json",
  "shuttle-axum",
  "shuttle-runtime",
  "tokio",
+ "tower",
  "tower-http 0.7.0",
 ]
 
