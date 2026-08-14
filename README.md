@@ -1,57 +1,103 @@
 # 🗜️ Huffman Compressor Web App
 
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow?style=for-the-badge)
+![Status](https://img.shields.io/badge/status-funcional-brightgreen?style=for-the-badge)
 ![Licença](https://img.shields.io/badge/licença-MIT-green?style=for-the-badge)
 
-> **Compressão de dados com algoritmo de Huffman, direto no seu navegador.**
+> **Compressão de arquivos de texto com o algoritmo de Huffman, direto no navegador.**
 
-Este repositório contém a página inicial **"Em Desenvolvimento"** do projeto, criada com uma estética imersiva que mistura terminal, árvores binárias e efeitos de Matrix para representar visualmente o funcionamento do algoritmo de Huffman.
+App web onde você envia um arquivo de texto, o backend em Rust comprime com o algoritmo de
+Huffman e devolve o arquivo `.huff` para download — com estatísticas de redução. Hospedado
+no [Shuttle](https://www.shuttle.dev/).
 
 ---
 
 ## 🚀 Sobre o Projeto
 
-O **Huffman Compressor** será uma aplicação web completa para compressão e descompressão de arquivos utilizando o clássico algoritmo de Huffman. A ideia é permitir que qualquer pessoa compacte textos, imagens ou outros tipos de arquivo diretamente no navegador, sem precisar instalar nada.
+O **Huffman Compressor** permite compactar arquivos de texto sem instalar nada. O algoritmo
+é implementado do zero em Rust: contagem de frequência por byte, construção da árvore de
+Huffman, geração dos códigos e empacotamento dos bits.
 
-Enquanto o app não é lançado, esta página de "Em Desenvolvimento" já mostra um pouco da identidade visual e do clima tecnológico do projeto.
+O arquivo é enviado ao backend, processado **em memória** (nada é gravado em disco) e o
+resultado `.huff` é devolvido para o download. O formato de arquivo é:
 
----
+```
+[ nº de símbolos u16 ] + ([ byte ] + [ frequência u32 ] × n) + payload de bits
+```
 
-## 🌟 Funcionalidades Planejadas
+## ✨ Funcionalidades
 
-- 📂 Upload de arquivos (texto, imagens, etc.)
-- 🗜️ Compressão usando codificação de Huffman
-- 📖 Descompressão de arquivos `.huff`
-- 🌳 Visualização interativa da árvore de Huffman gerada
-- 📊 Estatísticas de compressão (taxa de redução, tamanho original vs. comprimido)
-- 🔒 Processamento 100% local — seus arquivos não saem do navegador
-- 📱 Interface responsiva e moderna
+- 📂 Upload de arquivos de texto (arrastar e soltar ou clicar para escolher)
+- 🗜️ Compressão usando codificação de Huffman implementada do zero em Rust
+- ⬇️ Download do arquivo compactado `.huff`
+- 📊 Estatísticas: tamanho original, tamanho compactado e % de redução
+- 🧪 Validações: arquivo deve ser texto UTF-8 válido, limite de 5 MB por arquivo
+- 📱 Interface responsiva com tema terminal/neon (canvas Matrix, árvore binária animada)
 
----
+## 🎨 Interface
 
-## 🎨 Página Atual (Em Desenvolvimento)
-
-A landing page inclui:
+A página mantém a estética imersiva de terminal com:
 
 - **Árvore binária animada** com nós pulsantes e arestas tracejadas
 - **Bits binários caindo** em estilo Matrix (canvas)
 - **Efeito de digitação** no subtítulo
-- **Barra de progresso** animada com gradiente neon
-- **Design responsivo** e suporte a `prefers-reduced-motion`
+- **Barra de progresso** durante a compressão
+- **Suporte a `prefers-reduced-motion`**
 
----
+## 🛠️ Tecnologias
 
-## 🛠️ Tecnologias Utilizadas
-
-- HTML5
-- CSS3 (animações, variáveis, flexbox)
-- JavaScript puro (canvas, efeito de digitação, animações)
-- Fonte [Share Tech Mono](https://fonts.google.com/specimen/Share+Tech+Mono) para estética de terminal
-
----
+- **Backend:** Rust, [axum](https://github.com/tokio-rs/axum), [tokio](https://tokio.rs)
+- **Hospedagem:** [Shuttle](https://www.shuttle.dev/) (deploy gratuito)
+- **Frontend:** HTML5, CSS3, JavaScript puro (sem build)
+- Fonte [Share Tech Mono](https://fonts.google.com/specimen/Share+Tech+Mono)
 
 ## 📦 Como Rodar Localmente
 
+Pré-requisitos: Rust (stable) e, para rodar com o Shuttle, a CLI
+(`cargo install cargo-shuttle`).
+
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/seu-usuario/huffman-compressor.git
+   git clone <url-do-repositorio>
+   cd huffman-web-app
+   ```
+
+2. Rode o servidor:
+   ```bash
+   cargo shuttle run
+   ```
+
+3. Abra `http://localhost:8000` no navegador.
+
+Também funciona com `cargo run`, já que o app usa o macro `#[shuttle_runtime::main]`.
+
+## 🚀 Deploy no Shuttle (plano gratuito)
+
+```bash
+cargo shuttle login        # autentica no navegador
+cargo shuttle project start # cria o projeto e escolhe o nome
+cargo shuttle deploy        # publica o app
+```
+
+O app fica disponível em `https://<nome-do-projeto>.shuttle.app`.
+
+> **Limites do plano gratuito:** 128 MB de RAM e o app "dorme" após inatividade
+> (o primeiro acesso tem um leve atraso — cold start).
+
+## 🔮 Roadmap
+
+- 📖 Descompressão de arquivos `.huff`
+- 🗃️ Suporte a arquivos binários (imagens, PDFs, etc.)
+- 🌳 Visualização interativa da árvore de Huffman gerada
+- 📦 Aumentar o limite de upload
+
+## 🧪 Testes
+
+```bash
+cargo test        # unit tests do núcleo Huffman e do handler HTTP
+cargo clippy      # lint
+cargo fmt --check # formatação
+```
+
+## 📄 Licença
+
+MIT
