@@ -1,7 +1,9 @@
 mod tree;
+mod bit_io;
+mod huff_file;
 
 use std::{fs::read_to_string, println};
-use crate::huffman::tree::Node;
+use crate::huffman::{bit_io::BitWriter, huff_file::escrever_arquivo_huff, tree::Node};
 use std::collections::BinaryHeap;
 
 fn calcular_frequencia(conteudo: &String, tabela:  &mut [usize; 256]){
@@ -59,11 +61,32 @@ pub fn huffman(path_to_file: &String)  {
 
                 tree::gerar_codigo(&raiz, String::new(), &mut dicionario);
 
-                for (byte, codigo) in dicionario.iter().enumerate() {
-                    if let Some(c) = codigo {
-                        println!("Byte {} '{}' -> {}", byte, byte as u8 as char, c);
+                let mut writer = BitWriter::new();
+                
+                for byte in content.bytes() {
+                    if let Some(codigo) = &dicionario[byte as usize] {
+                        writer.escrever_codigo(codigo);
                     }
                 }
+
+                let payload: Vec<u8> = writer.finalizar();
+                let mut huff_data = Vec::new();
+                
+                let simbolos_unicos = tabela.iter().filter(|&&f| f > 0).count() as u16;
+                
+               huff_data.extend_from_slice(&simbolos_unicos.to_le_bytes());
+
+               for (byte, &freq) in tabela.iter().enumerate() {
+                    if freq > 0 {
+                        huff_data.push(byte as u8);
+                        huff_data.extend_from_slice(&(freq as u32).to_le_bytes());
+                    }
+               }
+
+               huff_data.extend(payload);
+
+               escrever_arquivo_huff(path_to_file, &huff_data);
+                
             }
         }
         Err(error) => {
