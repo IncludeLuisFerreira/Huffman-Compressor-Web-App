@@ -22,10 +22,13 @@ fn app() -> Router {
 async fn compactar_handler(mut multipart: Multipart) -> Result<Response, ApiError> {
     let arquivo = 'procurar: loop {
         match multipart.next_field().await.map_err(|erro| {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(json!({ "erro": format!("Falha ao ler o upload: {erro}") })),
-            )
+            let status = erro.status();
+            let mensagem = if status == StatusCode::PAYLOAD_TOO_LARGE {
+                "O arquivo excede o limite de 5 MB.".to_string()
+            } else {
+                erro.body_text()
+            };
+            (status, Json(json!({ "erro": mensagem })))
         })? {
             Some(campo) if campo.file_name().is_some() => break 'procurar Some(campo),
             Some(_) => continue 'procurar,
@@ -42,10 +45,13 @@ async fn compactar_handler(mut multipart: Multipart) -> Result<Response, ApiErro
 
     let file_name = campo.file_name().unwrap_or("arquivo").to_string();
     let bytes = campo.bytes().await.map_err(|erro| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "erro": format!("Falha ao ler o conteúdo: {erro}") })),
-        )
+        let status = erro.status();
+        let mensagem = if status == StatusCode::PAYLOAD_TOO_LARGE {
+            "O arquivo excede o limite de 5 MB.".to_string()
+        } else {
+            erro.body_text()
+        };
+        (status, Json(json!({ "erro": mensagem })))
     })?;
 
     if bytes.is_empty() {
@@ -179,6 +185,13 @@ mod tests {
             .to_str()
             .unwrap();
         assert!(disposition.contains("attachment; filename=\"com_campo.txt.huff\""));
+    }
+
+    #[tokio::test]
+    async fn arquivo_maior_que_o_limite_retorna_413() {
+        let conteudo = vec![b'a'; 6 * 1024 * 1024 + 64];
+        let resposta = enviar(&conteudo, Some("grande.txt")).await;
+        assert_eq!(resposta.status(), StatusCode::PAYLOAD_TOO_LARGE);
     }
 
     #[tokio::test]
