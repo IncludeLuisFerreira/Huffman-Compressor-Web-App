@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Huffman Compressor — Em Desenvolvimento</title>
+    <title>Huffman Compressor — Compacte arquivos de texto</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌳</text></svg>">
     <style>
-        /* ===== RESET & BASE ===== */
         * {
             margin: 0;
             padding: 0;
@@ -28,9 +27,7 @@
 
         html,
         body {
-            height: 100%;
-            overflow: hidden;
-            /* Impede rolagem, mas conteúdo centralizado */
+            min-height: 100%;
             font-family: var(--font-mono);
             background: var(--bg-dark);
             color: var(--text-primary);
@@ -38,7 +35,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Canvas de fundo para bits caindo */
         #matrix-canvas {
             position: fixed;
             top: 0;
@@ -47,12 +43,10 @@
             height: 100%;
             z-index: 1;
             pointer-events: none;
-            /* permite interação com o conteúdo */
             opacity: 0.35;
             filter: blur(0.5px);
         }
 
-        /* Container principal sobreposto ao canvas */
         .container {
             position: relative;
             z-index: 2;
@@ -61,12 +55,11 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 2rem;
+            padding: 2rem 1rem 4rem;
             text-align: center;
             background: radial-gradient(circle at center, rgba(10, 15, 14, 0.7) 0%, rgba(10, 15, 14, 0.95) 100%);
         }
 
-        /* ===== LOGO / ÍCONE ===== */
         .logo-wrapper {
             margin-bottom: 1.5rem;
             position: relative;
@@ -89,7 +82,6 @@
             }
         }
 
-        /* ===== ÁRVORE SVG ===== */
         .tree-svg {
             width: min(280px, 80vw);
             height: auto;
@@ -97,7 +89,6 @@
             filter: drop-shadow(0 0 20px rgba(0, 255, 156, 0.3));
         }
 
-        /* Nós da árvore */
         .node {
             fill: #0d1f1a;
             stroke: var(--green-neon);
@@ -108,24 +99,12 @@
             filter: drop-shadow(0 0 6px rgba(0, 255, 156, 0.7));
         }
 
-        .node:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        .node:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        .node:nth-child(4) {
-            animation-delay: 0.6s;
-        }
-        .node:nth-child(5) {
-            animation-delay: 0.8s;
-        }
-        .node:nth-child(6) {
-            animation-delay: 1.0s;
-        }
-        .node:nth-child(7) {
-            animation-delay: 1.2s;
-        }
+        .node:nth-child(2) { animation-delay: 0.2s; }
+        .node:nth-child(3) { animation-delay: 0.4s; }
+        .node:nth-child(4) { animation-delay: 0.6s; }
+        .node:nth-child(5) { animation-delay: 0.8s; }
+        .node:nth-child(6) { animation-delay: 1.0s; }
+        .node:nth-child(7) { animation-delay: 1.2s; }
 
         @keyframes pulse {
             0%,
@@ -140,7 +119,6 @@
             }
         }
 
-        /* Arestas (linhas) */
         .edge {
             stroke: var(--green-dim);
             stroke-width: 2;
@@ -159,7 +137,6 @@
             }
         }
 
-        /* Labels 0/1 nas arestas */
         .bit-label {
             fill: var(--cyan-neon);
             font-size: 14px;
@@ -182,7 +159,6 @@
             }
         }
 
-        /* Caracteres nas folhas */
         .leaf-char {
             fill: var(--text-primary);
             font-size: 13px;
@@ -192,7 +168,6 @@
             dominant-baseline: middle;
         }
 
-        /* ===== TÍTULO PRINCIPAL ===== */
         .main-title {
             font-size: clamp(2rem, 6vw, 3.5rem);
             font-weight: 700;
@@ -252,10 +227,9 @@
             }
         }
 
-        /* ===== BARRA DE PROGRESSO ===== */
         .progress-container {
             width: min(400px, 80vw);
-            margin: 0 auto 1.5rem;
+            margin: 0 auto 1rem;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 50px;
             padding: 3px;
@@ -319,34 +293,142 @@
             letter-spacing: 1px;
         }
 
-        /* ===== MENSAGEM ADICIONAL ===== */
-        .status-message {
-            font-size: 0.95rem;
+        .upload-zone {
+            width: min(520px, 90vw);
+            margin: 0 auto 1.2rem;
+            padding: 2rem 1.5rem;
+            border: 2px dashed rgba(0, 255, 156, 0.4);
+            border-radius: 12px;
+            background: rgba(0, 255, 156, 0.04);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragging {
+            border-color: var(--green-neon);
+            background: rgba(0, 255, 156, 0.1);
+            box-shadow: var(--border-glow);
+        }
+
+        .upload-hint {
             color: var(--text-secondary);
-            margin-top: 2rem;
-            padding: 0.8rem 1.5rem;
-            background: rgba(0, 255, 156, 0.05);
+            font-size: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .upload-hint span {
+            color: var(--green-neon);
+            text-decoration: underline;
+        }
+
+        .upload-info {
+            margin-top: 0.8rem;
+            color: var(--cyan-neon);
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+
+        .btn-compactar {
+            font-family: var(--font-mono);
+            font-size: 1.05rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 0.8rem 2.4rem;
+            margin-bottom: 1.2rem;
+            color: var(--bg-dark);
+            background: linear-gradient(90deg, var(--green-dim), var(--green-neon));
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 18px rgba(0, 255, 156, 0.5);
+            transition: var(--transition);
+        }
+
+        .btn-compactar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 0 28px rgba(0, 255, 156, 0.8);
+        }
+
+        .btn-compactar:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            width: min(520px, 90vw);
+            margin: 0 auto 1.2rem;
+            padding: 0.8rem 1.2rem;
+            color: #ff6b6b;
+            background: rgba(255, 0, 60, 0.08);
+            border: 1px solid rgba(255, 80, 80, 0.4);
             border-radius: 8px;
-            border: 1px dashed rgba(0, 255, 156, 0.3);
-            display: inline-block;
+            font-size: 0.95rem;
             letter-spacing: 0.5px;
         }
 
-        .status-message span {
+        .result-panel {
+            width: min(520px, 90vw);
+            margin: 0 auto 1.2rem;
+            padding: 1.2rem;
+            background: rgba(0, 255, 156, 0.05);
+            border: 1px solid rgba(0, 255, 156, 0.3);
+            border-radius: 12px;
+        }
+
+        .stats-grid {
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
             color: var(--green-neon);
+            font-size: 1.3rem;
             font-weight: bold;
         }
 
-        /* ===== RODAPÉ ===== */
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .download-link {
+            display: inline-block;
+            font-family: var(--font-mono);
+            letter-spacing: 1px;
+            padding: 0.7rem 1.6rem;
+            color: var(--bg-dark);
+            background: var(--cyan-neon);
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 0 18px rgba(0, 229, 255, 0.5);
+            transition: var(--transition);
+        }
+
+        .download-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 28px rgba(0, 229, 255, 0.8);
+        }
+
         .footer {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
             text-align: center;
             font-size: 0.8rem;
             color: rgba(255, 255, 255, 0.4);
             letter-spacing: 1px;
+            padding: 1rem;
+            position: relative;
             z-index: 2;
         }
 
@@ -361,29 +443,13 @@
             text-shadow: 0 0 8px rgba(0, 255, 156, 0.6);
         }
 
-        /* ===== RESPONSIVIDADE ===== */
         @media (max-width: 600px) {
-            .tree-svg {
-                width: 200px;
-            }
-            .logo-tree {
-                width: 80px;
-                height: 80px;
-            }
-            .subtitle {
-                font-size: 0.9rem;
-                gap: 5px;
-            }
-            .progress-container {
-                width: 90vw;
-            }
-            .status-message {
-                font-size: 0.8rem;
-                padding: 0.6rem 1rem;
-            }
+            .tree-svg { width: 200px; }
+            .logo-tree { width: 80px; height: 80px; }
+            .subtitle { font-size: 0.9rem; gap: 5px; }
+            .progress-container { width: 90vw; }
         }
 
-        /* Suporte a reduzir movimento */
         @media (prefers-reduced-motion: reduce) {
             *,
             *::before,
@@ -394,20 +460,15 @@
             }
         }
     </style>
-    <!-- Fonte monospace temática (com fallback) -->
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- Canvas para bits binários caindo (efeito Matrix) -->
     <canvas id="matrix-canvas"></canvas>
 
-    <!-- Conteúdo principal -->
     <div class="container">
-        <!-- Ícone / Logo simples -->
         <div class="logo-wrapper">
             <svg class="logo-tree" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <!-- Árvore estilizada -->
                 <circle cx="50" cy="30" r="8" fill="#0d1f1a" stroke="#00ff9c" stroke-width="2.5"/>
                 <line x1="50" y1="38" x2="30" y2="60" stroke="#00b874" stroke-width="2" stroke-dasharray="4 3"/>
                 <line x1="50" y1="38" x2="70" y2="60" stroke="#00b874" stroke-width="2" stroke-dasharray="4 3"/>
@@ -421,7 +482,6 @@
                 <circle cx="40" cy="85" r="4" fill="#0d1f1a" stroke="#00ff9c" stroke-width="1.5"/>
                 <circle cx="60" cy="85" r="4" fill="#0d1f1a" stroke="#00ff9c" stroke-width="1.5"/>
                 <circle cx="80" cy="85" r="4" fill="#0d1f1a" stroke="#00ff9c" stroke-width="1.5"/>
-                <!-- Texto "0" e "1" -->
                 <text x="36" y="50" fill="#00e5ff" font-size="9" font-weight="bold" font-family="monospace">0</text>
                 <text x="62" y="50" fill="#00e5ff" font-size="9" font-weight="bold" font-family="monospace">1</text>
                 <text x="18" y="76" fill="#00e5ff" font-size="8" font-weight="bold" font-family="monospace">0</text>
@@ -431,19 +491,14 @@
             </svg>
         </div>
 
-        <!-- Árvore binária animada (maior) -->
         <svg class="tree-svg" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
-            <!-- Arestas (linhas) -->
-            <!-- Nível 1 para 2 -->
             <line x1="150" y1="30" x2="90" y2="80" class="edge" />
             <line x1="150" y1="30" x2="210" y2="80" class="edge edge-reverse" />
-            <!-- Nível 2 para 3 -->
             <line x1="90" y1="80" x2="50" y2="140" class="edge" />
             <line x1="90" y1="80" x2="130" y2="140" class="edge edge-reverse" />
             <line x1="210" y1="80" x2="170" y2="140" class="edge" />
             <line x1="210" y1="80" x2="250" y2="140" class="edge edge-reverse" />
 
-            <!-- Labels 0/1 nas arestas -->
             <text x="112" y="52" class="bit-label">0</text>
             <text x="188" y="52" class="bit-label">1</text>
             <text x="62" y="108" class="bit-label">0</text>
@@ -451,7 +506,6 @@
             <text x="182" y="108" class="bit-label">0</text>
             <text x="238" y="108" class="bit-label">1</text>
 
-            <!-- Nós (círculos) -->
             <circle cx="150" cy="30" r="12" class="node" />
             <circle cx="90" cy="80" r="10" class="node" />
             <circle cx="210" cy="80" r="10" class="node" />
@@ -460,154 +514,59 @@
             <circle cx="170" cy="140" r="8" class="node" />
             <circle cx="250" cy="140" r="8" class="node" />
 
-            <!-- Caracteres nas folhas (exemplos) -->
             <text x="50" y="165" class="leaf-char">'A'</text>
             <text x="130" y="165" class="leaf-char">'B'</text>
             <text x="170" y="165" class="leaf-char">'C'</text>
             <text x="250" y="165" class="leaf-char">'D'</text>
         </svg>
 
-        <!-- Título principal -->
         <h1 class="main-title">Huffman Compressor</h1>
 
-        <!-- Subtítulo com efeito de digitação -->
         <div class="subtitle">
             <span>⚙️</span>
-            <span class="typing-text" id="typing-text">Em Desenvolvimento</span>
+            <span class="typing-text" id="typing-text">Compacte arquivos de texto</span>
             <span class="cursor"></span>
             <span>⚙️</span>
         </div>
 
-        <!-- Barra de progresso animada -->
-        <div class="progress-label">⏳ Progresso da implementação</div>
-        <div class="progress-container">
+        <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" hidden>
+            <p class="upload-hint">📂 Arraste um arquivo de texto aqui ou <span>clique para escolher</span></p>
+            <p class="upload-info" id="upload-info" hidden></p>
+        </div>
+
+        <button class="btn-compactar" id="btn-compactar" disabled>🗜️ Compactar</button>
+
+        <div class="progress-label" id="progress-label" hidden>⏳ Comprimindo...</div>
+        <div class="progress-container" id="progress-container" hidden>
             <div class="progress-bar"></div>
         </div>
 
-        <!-- Mensagem de status -->
-        <div class="status-message">
-            <span>Compressão em andamento...</span> Estamos construindo o algoritmo de Huffman.
-            <br>Volte em breve para compactar seus dados! 📦➡️🗜️
+        <div class="error-message" id="error-message" hidden></div>
+
+        <div class="result-panel" id="result-panel" hidden>
+            <div class="stats-grid">
+                <div class="stat">
+                    <span class="stat-value" id="stat-original">—</span>
+                    <span class="stat-label">Original</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-compressed">—</span>
+                    <span class="stat-label">Compactado</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="stat-reduction">—</span>
+                    <span class="stat-label">Redução</span>
+                </div>
+            </div>
+            <a class="download-link" id="download-link" href="#" download>⬇️ Baixar arquivo .huff</a>
         </div>
     </div>
 
-    <!-- Rodapé -->
     <div class="footer">
         © 2025 Huffman Compressor • <a href="#">Sobre</a> • <a href="#">Contato</a>
     </div>
 
-    <script>
-        (function() {
-            // ===== 1. EFEITO DE DIGITAÇÃO (subtitle) =====
-            const typingElement = document.getElementById('typing-text');
-            const baseText = 'Em Desenvolvimento';
-            const dots = ['.', '..', '...'];
-            let dotIndex = 0;
-            let isDeleting = false;
-            let charIndex = baseText.length;
-            let currentText = baseText;
-
-            function typeEffect() {
-                if (!isDeleting) {
-                    // Adiciona caracteres
-                    if (charIndex < baseText.length) {
-                        charIndex++;
-                        currentText = baseText.substring(0, charIndex);
-                        typingElement.textContent = currentText;
-                        setTimeout(typeEffect, 120);
-                    } else {
-                        // Palavra completa, agora anima os pontos
-                        isDeleting = true;
-                        setTimeout(typeEffect, 400);
-                    }
-                } else {
-                    // Remove caracteres
-                    if (charIndex > 0) {
-                        charIndex--;
-                        currentText = baseText.substring(0, charIndex);
-                        typingElement.textContent = currentText;
-                        setTimeout(typeEffect, 60);
-                    } else {
-                        // Palavra apagada, reinicia
-                        isDeleting = false;
-                        charIndex = 0;
-                        setTimeout(typeEffect, 800);
-                    }
-                }
-            }
-
-            // Iniciar efeito de digitação após um pequeno atraso
-            setTimeout(typeEffect, 500);
-
-            // ===== 2. CANVAS DE BITS CAINDO (Matrix) =====
-            const canvas = document.getElementById('matrix-canvas');
-            const ctx = canvas.getContext('2d');
-
-            let width, height;
-            let fontSize = 16;
-            let columns, drops;
-
-            function setupCanvas() {
-                width = canvas.width = window.innerWidth;
-                height = canvas.height = window.innerHeight;
-                columns = Math.floor(width / fontSize);
-                drops = Array(columns).fill(0).map(() => Math.random() * -100);
-            }
-
-            function drawMatrix() {
-                // Fundo semi-transparente para rastro
-                ctx.fillStyle = 'rgba(10, 15, 14, 0.1)';
-                ctx.fillRect(0, 0, width, height);
-
-                // Configuração do texto
-                ctx.font = fontSize + 'px "Share Tech Mono", monospace';
-                ctx.fillStyle = '#00ff9c';
-                ctx.shadowColor = '#00ff9c';
-                ctx.shadowBlur = 4;
-
-                for (let i = 0; i < columns; i++) {
-                    // Caractere aleatório (0 ou 1, ou às vezes espaço)
-                    const char = Math.random() > 0.5 ? '1' : '0';
-                    const x = i * fontSize;
-                    const y = drops[i] * fontSize;
-
-                    ctx.fillText(char, x, y);
-
-                    // Reinicia quando sai da tela
-                    if (y > height && Math.random() > 0.975) {
-                        drops[i] = 0;
-                    }
-                    drops[i]++;
-                }
-
-                // Reduz sombra para performance
-                ctx.shadowBlur = 0;
-                requestAnimationFrame(drawMatrix);
-            }
-
-            // Redimensionar canvas
-            window.addEventListener('resize', () => {
-                setupCanvas();
-            });
-
-            // Iniciar animação do canvas
-            setupCanvas();
-            drawMatrix();
-
-            // ===== 3. ANIMAÇÃO DA ÁRVORE (já feita via CSS, mas adiciona interação sutil) =====
-            // Pode adicionar um leve efeito de hover nos nós se desejar, mas não é necessário.
-
-            // ===== 4. AJUSTE DE FOCO PARA ACESSIBILIDADE =====
-            // Adiciona outline para navegação por teclado
-            document.querySelectorAll('a').forEach(link => {
-                link.addEventListener('focus', () => {
-                    link.style.outline = '2px solid var(--green-neon)';
-                });
-                link.addEventListener('blur', () => {
-                    link.style.outline = 'none';
-                });
-            });
-        })();
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
