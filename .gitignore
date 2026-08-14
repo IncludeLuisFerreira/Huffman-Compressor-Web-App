@@ -1,4 +1,4 @@
 /target
-/worktrees
+/.worktrees
 *.txt
 *.huff
