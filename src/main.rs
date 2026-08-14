@@ -8,6 +8,8 @@ use axum::{
 use serde_json::json;
 use tower_http::services::ServeDir;
 
+type ApiError = (StatusCode, Json<serde_json::Value>);
+
 mod huffman;
 
 fn app() -> Router {
@@ -17,9 +19,7 @@ fn app() -> Router {
         .layer(DefaultBodyLimit::max(6 * 1024 * 1024))
 }
 
-async fn compactar_handler(
-    mut multipart: Multipart,
-) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
+async fn compactar_handler(mut multipart: Multipart) -> Result<Response, ApiError> {
     let arquivo = 'procurar: loop {
         match multipart.next_field().await.map_err(|erro| {
             (
@@ -55,7 +55,7 @@ async fn compactar_handler(
         ));
     }
 
-    String::from_utf8(bytes.to_vec()).map_err(|_| {
+    std::str::from_utf8(&bytes).map_err(|_| {
         (
             StatusCode::BAD_REQUEST,
             Json(json!({ "erro": "O arquivo deve ser um texto UTF-8 válido." })),
@@ -115,8 +115,37 @@ mod tests {
         (headers, body)
     }
 
-    async fn enviar(conteudo: &[u8], nome_arquivo: Option<&str>) -> Response {
-        let (headers, body) = montar_multipart(conteudo, nome_arquivo);
+    fn montar_multipart_com_campo_extra(
+        conteudo: &[u8],
+        nome_arquivo: &str,
+    ) -> (HeaderMap, Vec<u8>) {
+        let boundary = "huff-test-boundary";
+        let mut body = Vec::new();
+
+        body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+        body.extend_from_slice(b"Content-Disposition: form-data; name=\"campo\"\r\n\r\n");
+        body.extend_from_slice(b"valor qualquer\r\n");
+
+        body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+        body.extend_from_slice(
+            format!(
+                "Content-Disposition: form-data; name=\"arquivo\"; filename=\"{nome_arquivo}\"\r\n"
+            )
+            .as_bytes(),
+        );
+        body.extend_from_slice(b"Content-Type: text/plain\r\n\r\n");
+        body.extend_from_slice(conteudo);
+        body.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_str(&format!("multipart/form-data; boundary={boundary}")).unwrap(),
+        );
+        (headers, body)
+    }
+
+    async fn enviar_bruto(headers: HeaderMap, body: Vec<u8>) -> Response {
         let mut request = Request::builder()
             .method("POST")
             .uri("/api/compactar")
@@ -127,9 +156,29 @@ mod tests {
         app().oneshot(request).await.unwrap()
     }
 
+    async fn enviar(conteudo: &[u8], nome_arquivo: Option<&str>) -> Response {
+        let (headers, body) = montar_multipart(conteudo, nome_arquivo);
+        enviar_bruto(headers, body).await
+    }
+
     async fn corpo(resposta: Response) -> Vec<u8> {
         let (_partes, body) = resposta.into_parts();
         body.collect().await.unwrap().to_bytes().to_vec()
+    }
+
+    #[tokio::test]
+    async fn arquivo_apos_campo_sem_arquivo_retorna_200() {
+        let (headers, body) = montar_multipart_com_campo_extra(b"abracadabra", "com_campo.txt");
+        let resposta = enviar_bruto(headers, body).await;
+        assert_eq!(resposta.status(), StatusCode::OK);
+
+        let disposition = resposta
+            .headers()
+            .get(header::CONTENT_DISPOSITION)
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(disposition.contains("attachment; filename=\"com_campo.txt.huff\""));
     }
 
     #[tokio::test]
