@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, format};
+use std::cmp::Ordering;
 
 #[derive(Debug, Eq, PartialEq)] // Eq e PartialEq são necessárias para Ord
 pub enum Node {
@@ -35,14 +35,12 @@ impl PartialOrd for Node {
     }
 }
 
-
 pub fn gerar_codigo(raiz: &Node, caminho_atual: String, dicionario: &mut [Option<String>; 256]) {
-    
     match raiz {
-        Node::Folha { caracter, freq } => {
+        Node::Folha { caracter, .. } => {
             dicionario[*caracter as usize] = Some(caminho_atual);
         }
-        Node::Interno { freq, left, right } => {
+        Node::Interno { left, right, .. } => {
             gerar_codigo(left, format!("{}0", caminho_atual), dicionario);
 
             gerar_codigo(right, format!("{}1", caminho_atual), dicionario);

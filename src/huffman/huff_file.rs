@@ -1,17 +1,17 @@
-use std::{fmt::format, format, fs, println};
+use std::fs;
+use std::io::{self, ErrorKind};
+use std::path::Path;
 
-pub fn escrever_arquivo_huff(path_to_file: &String, huff_bytes: &Vec<u8>) -> bool {
-    match fs::read_to_string(path_to_file) {
-        Ok(content) => {
-            let output_path = format!("{}.huff",path_to_file);
-
-            fs::write(&output_path, huff_bytes).expect("ERRO");
-
-        }
-        Err(_) => {
-            println!("Erro");
-        }
+pub fn escrever_arquivo_huff(path_to_file: &str, huff_bytes: &[u8]) -> io::Result<()> {
+    if !Path::new(path_to_file).exists() {
+        return Err(io::Error::new(
+            ErrorKind::NotFound,
+            format!("Arquivo não encontrado: {}", path_to_file),
+        ));
     }
 
-    true
+    let output_path = format!("{}.huff", path_to_file);
+    fs::write(&output_path, huff_bytes)?;
+
+    Ok(())
 }

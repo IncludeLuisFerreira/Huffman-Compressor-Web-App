@@ -3,9 +3,10 @@ mod huffman;
 use crate::huffman::huffman;
 
 fn main() {
+    let path = "teste.txt";
 
-    let path = String::from("teste.txt");
-    
-    huffman(&path);
-
+    if let Err(error) = huffman(path) {
+        eprintln!("Erro: {}", error);
+        std::process::exit(1);
+    }
 }

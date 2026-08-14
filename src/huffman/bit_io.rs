@@ -1,8 +1,7 @@
-
 pub struct BitWriter {
     buffer: u8,
     bits_count: u8,
-    pub output: Vec<u8>
+    pub output: Vec<u8>,
 }
 
 impl BitWriter {
@@ -10,13 +9,13 @@ impl BitWriter {
         BitWriter {
             buffer: 0,
             bits_count: 0,
-            output: Vec::new()
+            output: Vec::new(),
         }
     }
 
     pub fn escrever_bits(&mut self, bit: char) {
-        self.buffer <<=  1;
-        
+        self.buffer <<= 1;
+
         if bit == '1' {
             self.buffer |= 1;
         }
